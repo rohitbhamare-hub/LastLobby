@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { User } from "../models/User.models.js";
 import { ApiError } from "../utils/APIerror.js";
 import { ApiResponse } from "../utils/APIresponse.js";
@@ -87,24 +88,15 @@ const loginUser = async (req, res) => {
                 .json(new ApiError(401, "Invalid Password"));
         }
 
-        const accessToken =
-            user.generateAccessToken();
-
-        const refreshToken =
-            user.generateRefreshToken();
-
-        user.refreshToken = refreshToken;
-
-        await user.save({
-            validateBeforeSave: false
-        });
+    const { accessToken, refreshToken } =
+    await generateAccessAndRefreshTokens(user._id);
 
         const loggedInUser = await User.findById(user._id)
             .select("-password -refreshToken");
 
         const options = {
             httpOnly: true,
-            secure: true
+            secure: false
         };
 
         return res
@@ -179,4 +171,87 @@ const logoutUser = async (req, res) => {
 
 };
 
-export { registerUser, loginUser, logoutUser };
+const generateAccessAndRefreshTokens = async (userId) => {
+
+    const user = await User.findById(userId);
+
+    const accessToken = user.generateAccessToken();
+
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+
+    await user.save({ validateBeforeSave: false });
+
+    return {
+        accessToken,
+        refreshToken
+    };
+
+};
+
+const refreshAccessToken = async (req, res) => {
+
+    try {
+
+        const incomingRefreshToken =
+            req.cookies.refreshToken ||
+            req.body.refreshToken;
+
+        if (!incomingRefreshToken) {
+            return res.status(401).json({
+                message: "Refresh Token Required"
+            });
+        }
+
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+
+        const user = await User.findById(decodedToken._id)
+            .select("+refreshToken");
+
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid Refresh Token"
+            });
+        }
+
+        if (incomingRefreshToken !== user.refreshToken) {
+            return res.status(401).json({
+                message: "Refresh Token Expired"
+            });
+        }
+
+        const {
+            accessToken,
+            refreshToken
+        } = await generateAccessAndRefreshTokens(user._id);
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        };
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json({
+                success: true,
+                accessToken,
+                refreshToken
+            });
+
+    } catch (error) {
+
+        return res.status(401).json({
+            message: error.message
+        });
+
+    }
+
+};
+
+export { registerUser, loginUser, logoutUser , refreshAccessToken };

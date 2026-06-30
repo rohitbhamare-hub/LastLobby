@@ -2,50 +2,62 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const userSchema = new mongoose.Schema(
-  {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
+const userSchema = new mongoose.Schema({
+
+    username:{
+        type:String,
+        required:true,
+        unique:true,
+        trim:true,
+        lowercase:true
     },
 
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
+    email:{
+        type:String,
+        required:true,
+        unique:true
     },
 
-    password: {
-      type: String,
-      required: true,
-      minlength: 6,
-      select: false,
+    password:{
+        type:String,
+        required:true
     },
 
-    avatar: {
-      type: String,
-      default: "",
+    avatar:{
+        type:String,
+        default:null
     },
 
-    bio: {
-      type: String,
-      default: "",
+    bio:{
+        type:String,
+        default:null
     },
 
-    refreshToken: {
-      type: String,
-      select: false,
+    country:{
+        type:String,
+        default:null
     },
-  },
-  {
-    timestamps: true,
-  }
-);
+
+    languages:[{
+        type:String
+    }],
+
+    discordUsername:{
+        type:String,
+        default:null
+    },
+
+    profileCompleted:{
+        type:Boolean,
+        default:false
+    },
+
+    refreshToken:{
+        type:String
+    }
+
+},{timestamps:true});
+
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return;
