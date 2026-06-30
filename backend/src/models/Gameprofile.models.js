@@ -11,41 +11,65 @@ const gameProfileSchema = new mongoose.Schema(
     gameName: {
       type: String,
       required: true,
+      trim: true,
     },
 
     gameUID: {
       type: String,
       required: true,
+      trim: true,
     },
 
     level: {
       type: Number,
+      default: 0,
     },
 
     rank: {
       type: String,
+      trim: true,
+      default: "",
     },
 
     region: {
       type: String,
+      trim: true,
+      default: "",
     },
 
-    language: {
-      type: [String],
-      default: [],
+    preferredRole: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     playStyle: {
       type: String,
+      trim: true,
+      default: "",
     },
 
-    availability: {
+    languages: {
+      type: [String],
+      default: [],
+    },
+
+    playTime: {
       type: String,
+      trim: true,
+      default: "",
     },
 
-    isLookingForPlayers: {
-      type: Boolean,
-      default: false,
+    lookingForMode: {
+      type: String,
+      enum: ["Casual", "Tournament"],
+      default: "Casual",
+    },
+
+    visibility: {
+      type: String,
+      enum: ["Public", "Private"],
+      default: "Public",
     },
   },
   {
@@ -53,4 +77,7 @@ const gameProfileSchema = new mongoose.Schema(
   }
 );
 
-export const GameProfile = mongoose.model("GameProfile",gameProfileSchema);
+// Ensure a user cannot create duplicate profiles for the same game
+gameProfileSchema.index({ user: 1, gameName: 1 }, { unique: true });
+
+export const GameProfile = mongoose.model("GameProfile", gameProfileSchema);
